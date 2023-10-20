@@ -1,0 +1,207 @@
+from collections import Counter
+import PyPDF2
+import heapq
+
+def build_huffman_tree(message):
+    # Calcula la frecuencia de cada símbolo en el mensaje
+    symbol_freq = Counter(message)
+
+    # Crea una cola de prioridad (heap) basada en las frecuencias
+    heap = [[weight, [char, ""]] for char, weight in symbol_freq.items()]
+    heapq.heapify(heap)
+
+    # Construye el árbol de Huffman
+    while len(heap) > 1:
+        lo = heapq.heappop(heap)
+        hi = heapq.heappop(heap)
+        for pair in lo[1:]:
+            pair[1] = '0' + pair[1]
+        for pair in hi[1:]:
+            pair[1] = '1' + pair[1]
+        heapq.heappush(heap, [lo[0] + hi[0]] + lo[1:] + hi[1:])
+
+    return sorted(heapq.heappop(heap)[1:], key=lambda p: (len(p[-1]), p))
+
+def huffman_encode(message, huffman_tree):
+    encoded_message = ""
+    for char in message:
+        for pair in huffman_tree:
+            if char == pair[0]:
+                encoded_message += pair[1]
+                break
+    return encoded_message
+
+def huffman_decode(encoded_message, huffman_tree):
+    decoded_message = ""
+    while encoded_message:
+        for pair in huffman_tree:
+            if encoded_message.startswith(pair[1]):
+                decoded_message += pair[0]
+                encoded_message = encoded_message[len(pair[1]):]
+                break
+    return decoded_message
+
+def build_shannon_fano_tree(message):
+    def divide(nodes):
+        if len(nodes) <= 1:
+            return nodes
+        mid = len(nodes) // 2
+        for node in nodes[:mid]:
+            node[1] += "0"
+        for node in nodes[mid:]:
+            node[1] += "1"
+        return divide(nodes[:mid]) + divide(nodes[mid:])
+
+    symbol_freq = {}
+    for char in message:
+        if char in symbol_freq:
+            symbol_freq[char] += 1
+        else:
+            symbol_freq[char] = 1
+
+    nodes = [[char, ""] for char in symbol_freq.keys()]
+    sorted_nodes = sorted(nodes, key=lambda x: symbol_freq[x[0]], reverse=True)
+    shannon_fano_tree = divide(sorted_nodes)
+
+    return sorted(shannon_fano_tree, key=lambda x: x[0])
+
+def shannon_fano_encode(message, shannon_fano_tree):
+    encoded_message = ""
+    for char in message:
+        for pair in shannon_fano_tree:
+            if char == pair[0]:
+                encoded_message += pair[1]
+                break
+    return encoded_message
+
+def shannon_fano_decode(encoded_message, shannon_fano_tree):
+    decoded_message = ""
+    while encoded_message:
+        for pair in shannon_fano_tree:
+            if encoded_message.startswith(pair[1]):
+                decoded_message += pair[0]
+                encoded_message = encoded_message[len(pair[1]):]
+                break
+    return decoded_message
+
+def run_length_encode(message):
+    # Implementa la codificación Run-Length
+    encoded_message = ""
+    char_count = 1
+    for i in range(1, len(message)):
+        if message[i] == message[i - 1]:
+            char_count += 1
+        else:
+            encoded_message += message[i - 1] + str(char_count)
+            char_count = 1
+    encoded_message += message[-1] + str(char_count)
+    return encoded_message
+
+def run_length_decode(encoded_message):
+    # Implementa la decodificación Run-Length
+    decoded_message = ""
+    i = 0
+    while i < len(encoded_message):
+        char = encoded_message[i]
+        i += 1
+        count = ""
+        while i < len(encoded_message) and encoded_message[i].isdigit():
+            count += encoded_message[i]
+            i += 1
+        decoded_message += char * int(count)
+    return decoded_message
+
+def substitution_encode(message, key):
+    # Implementa la codificación de sustitución simple
+    encoded_message = ""
+    for char in message:
+        if char in key:
+            encoded_message += key[char]
+        else:
+            encoded_message += char
+    return encoded_message
+
+def substitution_decode(encoded_message, key):
+    # Implementa la decodificación de sustitución simple
+    decoded_message = ""
+    for char in encoded_message:
+        for k, v in key.items():
+            if char == v:
+                decoded_message += k
+                break
+        else:
+            decoded_message += char
+    return decoded_message
+
+def main():
+    pdf_file_path = "C:/Users/yamil/Desktop/Teoría de la Información/Entropia/Rapunzel.pdf"
+
+    choice = input("Seleccione el método de codificación (1 para Huffman, 2 para Shannon-Fano, 3 para Run-Length, 4 para Cifrado por Sustitución Simple): ")
+
+    if choice == "1":
+        with open(pdf_file_path, "rb") as pdf_file:
+            pdf_reader = PyPDF2.PdfReader(pdf_file)
+            text = ""
+            for page_num in range(len(pdf_reader.pages)):
+                page = pdf_reader.pages[page_num]
+                text += page.extract_text()
+
+        huffman_tree = build_huffman_tree(text)
+        encoded_message = huffman_encode(text, huffman_tree)
+        decoded_message = huffman_decode(encoded_message, huffman_tree)
+        print("Mensaje original:", text)
+        print("Mensaje codificado con Huffman:", encoded_message)
+        print("Mensaje decodificado con Huffman:", decoded_message)
+    elif choice == "2":
+        with open(pdf_file_path, "rb") as pdf_file:
+            pdf_reader = PyPDF2.PdfReader(pdf_file)
+            text = ""
+            for page_num in range(len(pdf_reader.pages)):
+                page = pdf_reader.pages[page_num]
+                text += page.extract_text()
+
+        shannon_fano_tree = build_shannon_fano_tree(text)
+        encoded_message = shannon_fano_encode(text, shannon_fano_tree)
+        decoded_message = shannon_fano_decode(encoded_message, shannon_fano_tree)
+        print("Mensaje original:", text)
+        print("Mensaje codificado con Shannon-Fano:", encoded_message)
+        print("Mensaje decodificado con Shannon-Fano:", decoded_message)
+
+    elif choice == "3":
+        # Codificación Run-Length
+        with open(pdf_file_path, "rb") as pdf_file:
+            pdf_reader = PyPDF2.PdfReader(pdf_file)
+            text = ""
+            for page_num in range(len(pdf_reader.pages)):
+                page = pdf_reader.pages[page_num]
+                text += page.extract_text()
+
+        encoded_message = run_length_encode(text)
+        decoded_message = run_length_decode(encoded_message)
+        print("Mensaje original:", text)
+        print("Mensaje codificado con Run-Length:", encoded_message)
+        print("Mensaje decodificado con Run-Length:", decoded_message)
+
+    elif choice == "4":
+        # Codificación de Sustitución Simple
+        with open(pdf_file_path, "rb") as pdf_file:
+            pdf_reader = PyPDF2.PdfReader(pdf_file)
+            text = ""
+            for page_num in range(len(pdf_reader.pages)):
+                page = pdf_reader.pages[page_num]
+                text += page.extract_text()
+
+        key = input("Ingrese la clave de sustitución (ejemplo: a->X, b->Y): ")
+        key = dict(pair.split("->") for pair in key.split(", "))
+        encoded_message = substitution_encode(text, key)
+        decoded_message = substitution_decode(encoded_message, key)
+        print("Mensaje original:", text)
+        print("Mensaje codificado con Codificación de Sustitución Simple:", encoded_message)
+        print("Mensaje decodificado con Codificación de Sustitución Simple:", decoded_message)
+
+    else:
+        print("Opción no válida. Seleccione 1, 2, 3 o 4 para el método de codificación.")
+
+
+if __name__ == "__main__":
+    main()
