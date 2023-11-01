@@ -1,8 +1,11 @@
-#Esta Esta
+#Dice por cual subcanal fue enviado
 import random
 from collections import Counter
 import PyPDF2
+from PyPDF2 import PdfWriter, PdfReader
 import heapq
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
 
 def build_huffman_tree(message):
     # Calcula la frecuencia de cada símbolo en el mensaje
@@ -70,7 +73,7 @@ def build_shannon_fano_tree(message):
 
 def shannon_fano_encode(message, shannon_fano_tree):
     if shannon_fano_tree is None:
-        return message 
+        return message  # Devuelve la parte sin codificar si el árbol es None
     encoded_message = ""
     for char in message:
         for pair in shannon_fano_tree:
@@ -81,7 +84,7 @@ def shannon_fano_encode(message, shannon_fano_tree):
 
 def shannon_fano_decode(encoded_message, shannon_fano_tree):
     if shannon_fano_tree is None:
-        return encoded_message 
+        return encoded_message  # Devuelve el mensaje codificado si el árbol es None
     decoded_message = ""
     current_bits = ""
     for bit in encoded_message:
@@ -195,7 +198,6 @@ def receptor_single_part(encoded_message, method, tree_or_key):
         print("Método de decodificación no válido.")
         return None
 
-
 def main():
     pdf_file_path = "C:/Users/yamil/Desktop/Teoría de la Información/Entropia/Rapunzel.pdf"
     num_channels = 6  # Número de subcanales
@@ -217,14 +219,14 @@ def main():
         return
 
     # Leer el PDF original
-    pdf_reader = PyPDF2.PdfReader(open(pdf_file_path, "rb"))
+    pdf_reader = PyPDF2.PdfReader(pdf_file_path)
     text = ""
     for page in range(len(pdf_reader.pages)):
         text += pdf_reader.pages[page].extract_text()
 
-    #print("Mensaje original:")
-    #print(text)  # Muestra el mensaje original
+    print("Mensaje original:")
 
+    # Definir huffman_tree en el caso de Huffman
     if method == "Huffman":
         huffman_tree = build_huffman_tree(text)
     else:
@@ -234,6 +236,7 @@ def main():
     part_length = len(text) // num_parts
     parts = [text[i:i + part_length] for i in range(0, len(text), part_length)]
 
+    # Simula la recepción de las partes a través de los canales
     received_parts = [None] * num_parts
 
     current_channel = 0  # Inicializamos el canal actual
@@ -281,6 +284,26 @@ def main():
     if decoded_message is not None:
         print("Mensaje decodificado:")
         print(decoded_message)  # Muestra el mensaje decodificado
+
+        pdf_writer = PdfWriter()
+
+        # Crear una nueva página
+        c = canvas.Canvas("temp.pdf", pagesize=letter)
+        c.drawString(100, 100, decoded_message)
+        c.showPage()
+        c.save()
+
+        # Agregar la página al archivo PDF de salida
+        with open("temp.pdf", "rb") as temp_file:
+            page = PdfReader(temp_file).pages[0]
+            pdf_writer.add_page(page)
+
+        # Agregar la página al archivo PDF de salida
+        with open("temp.pdf", "rb") as temp_file:
+            page = PdfReader(temp_file).pages[0]
+            pdf_writer.add_page(page)
+
+        print("Mensaje decodificado guardado como 'temp.pdf'")
 
 if __name__ == "__main__":
     main()
